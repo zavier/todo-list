@@ -1,5 +1,7 @@
 # todo-list
 
+代码来自 [vue-todomvc demo](https://cn.vuejs.org/v2/examples/todomvc.html)
+
 ## Project setup
 ```
 npm install

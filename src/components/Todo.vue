@@ -47,28 +47,17 @@
 </template>
 
 <script>
-var STORAGE_KEY = 'todos-vuejs';
-var todoStorage = {
-    fetch: function() {
-        var todos = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
-        todos.forEach((todo, index) => todo.id = index);
-        todoStorage.uid = todos.length
-        return todos
-    },
-    save: function(todos) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(todos))
-    }
-}
+import axios from 'axios'
 
 var filters = {
     all: function(todos) {
         return todos
     },
     active: function(todos) {
-        return todos.filter(todo => !todo.completed);
+        return todos.filter(todo => todo.completed == 0);
     },
     completed: function(todos) {
-        return todos.filter(todo => todo.completed);
+        return todos.filter(todo => todo.completed == 1);
     }
 }
 
@@ -76,16 +65,36 @@ export default {
   name: 'Todo',
   data() {
       return {
-          todos: todoStorage.fetch(),
+          todos: [],
           newTodo: '',
           editedTodo: null,
           visibility: 'all'
       }
   },
+  mounted: function() {
+      axios.get('http://localhost:8080/list-item').then((response) => {
+          let data = response.data;
+          data.forEach(function(item) {
+              item.completed = item.completed === 1 ? true : false;
+          })
+          this.todos = data;
+      });
+  },
   watch: {
       todos: {
           handler: function(todos) {
-              todoStorage.save(todos);
+              if (!todos || todos.length === 0) {
+                  return
+              }
+              console.log(todos.length)
+              var temp = todos;
+              temp.forEach(function(item) {
+                  console.log(JSON.stringify(item))
+                  item.completed = item.completed === true ? 1 : 0;
+              });
+              axios.post('http://localhost:8080/update-items', {
+                  todoItems: temp
+              })
           },
           deep: true
       }
@@ -119,12 +128,13 @@ export default {
           if (!value) {
               return
           }
-          this.todos.push({
-              id: todoStorage.uid++,
-              title: value,
-              completed: false
-          })
-          this.newTodo = ''
+          axios.post('http://localhost:8080/add-item?title=' + value).then((response) => {
+              this.todos.push({
+                  id: response.data.id,
+                  title: response.data.title
+              });
+              this.newTodo = '';
+          });
       },
       removeTodo: function(todo) {
           this.todos.splice(this.todos.indexOf(todo), 1)
